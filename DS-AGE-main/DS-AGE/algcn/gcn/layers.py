@@ -1,4 +1,4 @@
-from gcn.inits import *
+from inits import *
 import tensorflow as tf
 
 flags = tf.compat.v1.flags
