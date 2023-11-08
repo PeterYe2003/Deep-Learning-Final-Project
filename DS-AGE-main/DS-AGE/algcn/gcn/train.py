@@ -4,12 +4,11 @@ from __future__ import print_function
 import time
 import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
-
 from utils import *
 from models import GCN, MLP
 
 # Set random seed
-seed = 123
+seed = 42
 np.random.seed(seed)
 tf.set_random_seed(seed)
 
