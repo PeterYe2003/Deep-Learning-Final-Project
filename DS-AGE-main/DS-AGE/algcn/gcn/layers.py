@@ -117,7 +117,7 @@ class Dense(Layer):
         if self.sparse_inputs:
             x = sparse_dropout(x, 1-self.dropout, self.num_features_nonzero)
         else:
-            x = tf.compat.v1.nn.dropout(x, 1-self.dropout)
+            x = tf.compat.v1.nn.dropout(x, rate=self.dropout)
 
         # transform
         output = dot(x, self.vars['weights'], sparse=self.sparse_inputs)
@@ -167,7 +167,7 @@ class GraphConvolution(Layer):
         if self.sparse_inputs:
             x = sparse_dropout(x, 1-self.dropout, self.num_features_nonzero)
         else:
-            x = tf.compat.v1.nn.dropout(x, 1-self.dropout)
+            x = tf.compat.v1.nn.dropout(x, rate=self.dropout)
 
         # convolve
         supports = list()
