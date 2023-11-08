@@ -15,4 +15,5 @@ setup(name='gcn',
                         'scipy'
                         ],
       package_data={'gcn': ['README.md']},
-      packages=find_packages())
+      packages=find_packages()
+)
