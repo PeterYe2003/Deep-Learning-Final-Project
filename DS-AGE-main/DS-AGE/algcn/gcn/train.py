@@ -8,7 +8,7 @@ from utils import *
 from models import GCN, MLP
 
 # Set random seed
-seed = 42
+seed = 123
 np.random.seed(seed)
 tf.set_random_seed(seed)
 
