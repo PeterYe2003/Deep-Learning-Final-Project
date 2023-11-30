@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def softmax_cross_entropy(preds, labels, mask):
+def m_softmax_cross_entropy(preds, labels, mask):
     """
     Calculate masked softmax cross-entropy loss.
 
@@ -19,7 +19,7 @@ def softmax_cross_entropy(preds, labels, mask):
     return tf.reduce_mean(loss)
 
 
-def masked_accuracy(preds, labels, mask):
+def m_accuracy(preds, labels, mask):
     """
     Calculate accuracy with masking.
 
