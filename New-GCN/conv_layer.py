@@ -1,12 +1,23 @@
-from conv_layer_helpers import *
-from inits import gb_tensor, zeros_tensor
+from typing import Union, Any, List, Tuple
+
+from helpers import *
+
 
 class GraphConvolutionLayer(tf.keras.layers.Layer):
     """Convolution Layer class."""
 
-    def __init__(self, input_dim, output_dim, num_nonzero_features, dropout=0.0, has_sparse_inputs=False,
-                 act_fn=tf.nn.relu,
-                 bias=False, has_features=True, **kwargs):
+    def __init__(
+            self,
+            input_dim,
+            output_dim,
+            num_nonzero_features,
+            dropout=0.0,
+            has_sparse_inputs=False,
+            act_fn=tf.nn.relu,
+            bias=False,
+            has_features=True,
+            **kwargs
+    ):
         super(GraphConvolutionLayer, self).__init__(**kwargs)
 
         self.dropout = dropout
@@ -16,44 +27,77 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
         self.has_features = has_features
         self.bias = bias
 
-        w = self.add_weight(name='weight0', shape=[input_dim, output_dim])
+        w = self.add_weight(name="weight0", shape=[input_dim, output_dim])
         w.assign(gb_tensor([input_dim, output_dim]))
         self.weights_ = [w]
+
         if self.bias:
-            b = self.add_weight(name='bias', shape=[output_dim])
+            b = self.add_weight(name="bias", shape=[output_dim])
             b.assign(zeros_tensor([output_dim]))
 
-    def _dropout(self, x, training):
+    def __call__(self, inputs):
+        return self._call(inputs)
+
+    def _dropout(self, features: Union[tf.Tensor, tf.SparseTensor], training: Any):
+        """
+        Apply dropout to the input tensor.
+
+        :param features: Input tensor.
+
+        :param training: Flag indicating whether the model is in training mode.
+
+        :return: Output tensor after applying dropout (if in training mode).
+        :rtype: tf.Tensor
+        """
         if training is False:
-            return x
+            return features
         if self.sparse_inputs:
-            x = sparse_dropout(x, self.dropout, self.num_nonzero_features)
+            features = sparse_dropout(features, self.dropout, self.num_nonzero_features)
         else:
-            x = tf.nn.dropout(x, rate=self.dropout)
-        return x
+            features = tf.nn.dropout(features, rate=self.dropout)
+        return features
 
-    def _convolve(self, x):
+    def _convolve(self, features: tf.Tensor, adj_: List[tf.Tensor]):
+        """
+        Perform graph convolution operation on input features.
 
-        supports = [
-            multiply_tensors(x, self.weights_[i], sparse=self.sparse_inputs)
+        :param features: Input features.
+
+        :param adj_: List of adjacency matrices.
+
+        :return: Output after graph convolution.
+        """
+        adj = [
+            multiply_tensors(features, self.weights_[i], sparse=self.sparse_inputs)
             if self.has_features
             else self.weights_[i]
-            for i in range(len(self.support))
+            for i in range(len(adj_))
         ]
 
         outputs = [
-            multiply_tensors(self.support[i], supports[i], sparse=True)
-            for i in range(len(self.support))
+            multiply_tensors(adj_[i], adj[i], sparse=True)
+            for i in range(len(adj_))
         ]
 
         return tf.add_n(outputs)
 
-    def call(self, inputs, *args, **kwargs):
-        x, supports = inputs
-        out = self._convolve(x)
+    def call(self, inputs: Tuple[tf.Tensor, List[tf.Tensor]], training=None, **kwargs):
+        """
+        Perform the computation of the Graph Convolutional Layer.
+
+        :param inputs: Input data containing features and adjacency matrices.
+
+        :param training: Whether the model is in training mode.
+        :type training: bool, optional
+
+        :param kwargs: Additional keyword arguments.
+
+        :return: Output after the graph convolutional layer computation.
+        :rtype: tf.Tensor
+        """
+        features, adj = inputs
+        features = self._dropout(features, training)
+        out = self._convolve(features, adj)
         if self.bias:
             out += self.bias
         return self.act_fn(out)
-
-    def __call__(self, inputs):
-        return self._call(inputs)
