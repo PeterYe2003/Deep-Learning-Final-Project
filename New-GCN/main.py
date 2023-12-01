@@ -7,6 +7,7 @@ import scipy as sc
 import sys
 import os
 import sklearn
+import numpy as np
 
 # from gcn.utils import *
 from gcn import GCN
@@ -27,22 +28,22 @@ np.random.seed(seed)
 tf.random.set_seed(seed)
 
 dataset_str = sys.argv[4]
-# time sensitive weight
-basef = 0
+# Initializing the C hyperparameter.
+hyperparameterC = 0
 if dataset_str == 'citeseer':
-    if sys.argv[1] != 'combined':
-        basef = 0.9
+    if sys.argv[1] != 'AGE+FDS+SDS':
+        hyperparameterC = 0.9
     else:
-        basef = 0.85
+        hyperparameterC = 0.85
 elif dataset_str == 'cora':
-    if sys.argv[1] != 'combined':
-        basef = 0.99
+    if sys.argv[1] != 'AGE+FDS+SDS':
+        hyperparameterC = 0.99
     else:
-        basef = 0.95
+        hyperparameterC = 0.95
 elif dataset_str == 'pubmed':
-    basef = 0.995
-if (basef == 0):
-    print('Error! Have to set basef first at line 113 in train_entropy_density_graphcentral_ts.py!')
+    hyperparameterC = 0.995
+if hyperparameterC == 0:
+    print('Error! Need to set hyperparameterC')
     sys.exit()
 
 # Settings
@@ -58,7 +59,8 @@ flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 loss on embedding matrix
 flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of epochs).')
 flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 
-if sys.argv[1] not in ['baseline', 'f_similarity', 's_similarity', 'e_similarity', 'combined']:
+# These are the options for the method we use.
+if sys.argv[1] not in ['baseline', 'AGE+FDS', 'AGE+SDS', 'AGE+EDS', 'AGE+FDS+SDS']:
     print("Wrong method!")
     exit(1)
 MAC = []
@@ -71,6 +73,7 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
 
     message_passing = adj * adj
 
+
     # Some preprocessing
     raw_features = features.todense()
     features = preprocess_features(features)
@@ -78,16 +81,10 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
         support = [preprocess_adj(adj)]
         num_supports = 1
         model_func = GCN
-    elif FLAGS.model == 'gcn_cheby':
-        support = chebyshev_polynomials(adj, FLAGS.max_degree)
-        num_supports = 1 + FLAGS.max_degree
-        model_func = GCN
-    elif FLAGS.model == 'dense':
-        support = [preprocess_adj(adj)]  # Not used
-        num_supports = 1
-        model_func = MLP
     else:
         raise ValueError('Invalid argument for model: ' + str(FLAGS.model))
+
+    # PETER STOPPED HERE:
 
     NCL = int(sys.argv[3])
     NL = NCL * 20
@@ -102,11 +99,13 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
         'num_features_nonzero': tf.compat.v1.placeholder(tf.int32)  # helper variable for sparse dropout
     }
 
+
     # Create model
     model = model_func(placeholders, input_dim=features[2][1], logging=True)
 
     # Initialize session
     sess = tf.compat.v1.Session()
+
 
 
     # Define model evaluation function
@@ -150,10 +149,10 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
         t = time.time()
 
         # time sensitive parameters
-        gamma = np.random.beta(1, 1.005 - basef ** epoch)
+        gamma = np.random.beta(1, 1.005 - hyperparameterC ** epoch)
         if sys.argv[1] == 'baseline':
             alpha = beta = delta = epsilon = (1 - gamma) / 2
-        elif sys.argv[1] == 'combined':
+        elif sys.argv[1] == 'AGE+FDS+SDS':
             alpha = beta = delta = epsilon = (1 - gamma) / 4
         else:
             alpha = beta = delta = epsilon = (1 - gamma) / 3
@@ -205,19 +204,19 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
             if sys.argv[1] == 'baseline':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc
                 print("entropy weight: ", alpha, " density weight: ", beta, "centrality weight: ", gamma)
-            elif sys.argv[1] == 'f_similarity':
+            elif sys.argv[1] == 'AGE+FDS':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * simprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " feature similarity weight: ", delta)
-            elif sys.argv[1] == 's_similarity':
+            elif sys.argv[1] == 'AGE+SDS':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " structural similarity weight: ", delta)
-            elif sys.argv[1] == 'e_similarity':
+            elif sys.argv[1] == 'AGE+EDS':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * em_simprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " embedding similarity weight: ", delta)
-            else:
+            elif sys.argv[1] == 'AGE+FDS+SDS':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec + epsilon * simprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " stuructural similarity weight: ", delta, " feature similarity weight: ", epsilon)
