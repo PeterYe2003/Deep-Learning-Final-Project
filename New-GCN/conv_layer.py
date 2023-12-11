@@ -1,6 +1,6 @@
 from typing import Union, Any, List, Tuple
 
-from helpers import *
+from gcn_helpers import *
 
 
 class GraphConvolutionLayer(tf.keras.layers.Layer):
@@ -83,7 +83,7 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
 
     def call(self, inputs: Tuple[tf.Tensor, List[tf.Tensor]], training=None, **kwargs):
         """
-        Perform the computation of the Graph Convolutional Layer.
+        Perform the computation of 4the Graph Convolutional Layer.
 
         :param inputs: Input data containing features and adjacency matrices.
 
