@@ -1,4 +1,16 @@
 import pickle as pkl
+import numpy as np
+import networkx as nx
+import random
+import scipy.sparse as sp
+
+
+def sample_mask(idx, n):
+    """Create mask."""
+    mask = np.zeros(n)
+    mask[idx] = 1
+    return np.array(mask, dtype=np.bool)
+
 
 def parse_index_file(filename):
     """Parse index file."""
@@ -7,16 +19,14 @@ def parse_index_file(filename):
         index.append(int(line.strip()))
     return index
 
+
 def load_randomalpdata(dataset_str, iter, inicount):
     """Load data."""
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
         with open("data/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
-            if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
-            else:
-                objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
     test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
