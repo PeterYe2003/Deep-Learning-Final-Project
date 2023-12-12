@@ -1,5 +1,3 @@
-
-from config import *
 from helpers import *
 from gcn import GCN
 

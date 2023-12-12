@@ -1,8 +1,6 @@
 from inits import *
 import tensorflow as tf
 
-flags = tf.compat.v1.flags
-FLAGS = flags.FLAGS
 
 _LAYER_UIDS = {}
 
@@ -34,46 +32,20 @@ def dot(x, y, sparse=False):
     return res
 
 
-class Layer(object):
-    """Base layer class. Defines basic API for all layer objects.
-    Implementation inspired by keras (http://keras.io).
-
-    # Properties
-        name: String, defines the variable scope of the layer.
-        logging: Boolean, switches Tensorflow histogram logging on/off
-
-    # Methods
-        _call(inputs): Defines computation graph of layer
-            (i.e. takes input, returns output)
-        __call__(inputs): Wrapper for _call()
-        _log_vars(): Log all variables
-    """
-
-    def __init__(self, **kwargs):
-        name = kwargs.get('name')
-        if not name:
-            layer = self.__class__.__name__.lower()
-            name = layer + '_' + str(get_layer_uid(layer))
-        self.name = name
-        self.vars = {}
-        self.sparse_inputs = False
-
-    def _call(self, inputs):
-        return inputs
-
-    def __call__(self, inputs):
-        with tf.name_scope(self.name):
-            outputs = self._call(inputs)
-            return outputs
-
-
-class GraphConvolution(Layer):
+class GraphConvolution:
     """Graph convolution layer."""
 
     def __init__(self, input_dim, output_dim, placeholders, dropout=0.,
                  sparse_inputs=False, act=tf.nn.relu, bias=False,
                  featureless=False, **kwargs):
         super(GraphConvolution, self).__init__(**kwargs)
+
+        name = kwargs.get('name')
+        if not name:
+            layer = self.__class__.__name__.lower()
+            name = layer + '_' + str(get_layer_uid(layer))
+        self.name = name
+        self.vars = {}
 
         if dropout:
             self.dropout = placeholders['dropout']
@@ -95,6 +67,11 @@ class GraphConvolution(Layer):
                                                         name='weights_' + str(i))
             if self.bias:
                 self.vars['bias'] = zeros([output_dim], name='bias')
+
+    def __call__(self, inputs):
+        with tf.name_scope(self.name):
+            outputs = self._call(inputs)
+            return outputs
 
     def _call(self, inputs):
         x = inputs
@@ -119,3 +96,5 @@ class GraphConvolution(Layer):
             output += self.vars['bias']
 
         return self.act(output)
+
+

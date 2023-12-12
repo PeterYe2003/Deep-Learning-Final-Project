@@ -5,10 +5,12 @@ import time
 import tensorflow as tf
 import scipy as sc
 import os
+import argparse
 import sklearn
 
 from gcn.utils import *
-from gcn.models import GCN
+from gcn.models import GCN, Simple_GCN
+from gcn.configuration import *
 from utils import load_randomalpdata
 from utils import sample_mask
 from scipy import stats
@@ -20,41 +22,32 @@ seed = 42
 np.random.seed(seed)
 tf.random.set_seed(seed)
 
-dataset_str = sys.argv[4]
 
+dataset_str = args.dataset
 basef = 0
 if dataset_str == 'citeseer':
-    if sys.argv[1] != 'combined':
-        basef = 0.9
-    else:
+    if args.method == 'all':
+        basef = 0.8
+    elif args.method in {'fs_similarity, fe_similarity, se_similarity'}:
         basef = 0.85
-elif dataset_str == 'cora':
-    if sys.argv[1] != 'combined':
-        basef = 0.99
     else:
+        basef = 0.9
+elif dataset_str == 'cora':
+    if args.method == 'all':
+        basef = 0.9
+    elif args.method in {'fs_similarity, fe_similarity, se_similarity'}:
         basef = 0.95
+    else:
+        basef = 0.99
 elif dataset_str == 'pubmed':
     basef = 0.995
 
-flags = tf.compat.v1.flags
-FLAGS = flags.FLAGS
-flags.DEFINE_string('dataset', sys.argv[4], 'Dataset string.')
-flags.DEFINE_string('model', 'gcn', 'Model string.')
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
-flags.DEFINE_integer('epochs', 300, 'Number of epochs to train.')
-flags.DEFINE_integer('hidden1', 16, 'Number of units in hidden layer 1.')
-flags.DEFINE_float('dropout', 0.5, 'Dropout rate (1 - keep probability).')
-flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 loss on embedding matrix.')
-flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of epochs).')
 
-if sys.argv[1] not in ['baseline', 'f_similarity', 's_similarity', 'e_similarity', 'combined']:
-    print("Wrong method!")
-    exit(1)
 MAC = []
 MIC = []
 for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
     adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask, idx_train, labels, graph = load_randomalpdata(
-        FLAGS.dataset, index_val, int(sys.argv[2]))
+        args.dataset, index_val, args.inicount)
     np.set_printoptions(threshold=sys.maxsize)
 
     message_passing = adj * adj
@@ -64,9 +57,13 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
 
     support = [preprocess_adj(adj)]
     num_supports = 1
-    model_func = GCN
 
-    NCL = int(sys.argv[3])
+    if args.model == 'gcn':
+        model_func = GCN
+    else:
+        model_func = Simple_GCN
+
+    NCL = args.num_classes
     NL = NCL * 20
     tf.compat.v1.disable_eager_execution()
 
@@ -80,7 +77,7 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
     }
 
     # Create model
-    model = GCN(placeholders, input_dim=features[2][1], logging=True)
+    model = model_func(placeholders, input_dim=features[2][1], logging=True)
 
     # Initialize session
     sess = tf.compat.v1.Session()
@@ -114,27 +111,27 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
 
     cost_val = []
 
-    normcen = np.loadtxt("res/" + FLAGS.dataset + "/graphcentrality/normcen")
+    normcen = np.loadtxt("res/" + args.dataset + "/graphcentrality/normcen")
     cenperc = np.asarray([perc(normcen, i) for i in range(len(normcen))])
 
     # Train model
-    for epoch in range(FLAGS.epochs):
+    for epoch in range(args.epochs):
 
         t = time.time()
 
         gamma = np.random.beta(1, 1.005 - basef ** epoch)
-        if sys.argv[1] == 'baseline':
-            alpha = beta = delta = epsilon = (1 - gamma) / 2
-        elif sys.argv[1] == 'combined':
-            alpha = beta = delta = epsilon = (1 - gamma) / 4
-        elif sys.argv[1] == 'all':
-            alpha = beta = delta = epsilon = = (1 - gamma) / 5
+        if args.method == 'baseline':
+            alpha = beta = delta = epsilon = phi = (1 - gamma) / 2
+        elif args.method in {'fs_similarity, fe_similarity, se_similarity'}:
+            alpha = beta = delta = epsilon = phi = (1 - gamma) / 4
+        elif args.method == 'all':
+            alpha = beta = delta = epsilon = phi = (1 - gamma) / 5
         else:
-            alpha = beta = delta = epsilon = (1 - gamma) / 3
+            alpha = beta = delta = epsilon = phi = (1 - gamma) / 3
 
         feed_dict = construct_feed_dict(features, support, y_train, train_mask, placeholders)
 
-        feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+        feed_dict.update({placeholders['dropout']: args.dropout})
         outs = sess.run([model.opt_op, model.loss, model.accuracy, model.predict(), model.outputs], feed_dict=feed_dict)
 
         if len(idx_train) < NL:
@@ -166,36 +163,42 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
             train_mask = sample_mask(idx_train, labels.shape[0])
             entrperc = np.asarray([perc(entropy, i) for i in range(len(entropy))])
 
-            kmeans = KMeans(n_clusters=NCL, random_state=0).fit(outs[3])
+            kmeans = KMeans(n_clusters=NCL, random_state=0, n_init=10).fit(outs[3])
             ed = euclidean_distances(outs[3], kmeans.cluster_centers_)
             ed_score = np.min(ed, axis=1)
             edprec = np.asarray([percd(ed_score, i) for i in range(len(ed_score))])
 
-            if sys.argv[1] == 'baseline':
+            if args.method == 'baseline':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc
                 print("entropy weight: ", alpha, " density weight: ", beta, "centrality weight: ", gamma)
-            elif sys.argv[1] == 'f_similarity':
+            elif args.method == 'f_similarity':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * simprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " feature similarity weight: ", delta)
-            elif sys.argv[1] == 's_similarity':
+            elif args.method == 's_similarity':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " structural similarity weight: ", delta)
-            elif sys.argv[1] == 'e_similarity':
+            elif args.method == 'e_similarity':
                 finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * em_simprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
                       " embedding similarity weight: ", delta)
-            elif sys.argv[1] == 'fs_similarity': # FDS SDS
-                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta  * simprec + epsilon * connprec
-            elif sys.argv[1] == 'fe_similarity':  # FDS EDS
-                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta  * simprec + epsilon * em_simprec
-            elif sys.argv[1] == 'se_similarity':
-                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta  * connprec + epsilon * em_simprec
-            else:
-                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec + epsilon * simprec
+            elif args.method == 'fs_similarity': # FDS SDS
+                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * simprec + epsilon * connprec
                 print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
-                      " stuructural similarity weight: ", delta, " feature similarity weight: ", epsilon)
+                      " feature similarity weight: ", delta, " structural similarity weight: ", epsilon)
+            elif args.method == 'fe_similarity':  # FDS EDS
+                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * simprec + epsilon * em_simprec
+                print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
+                      " feature similarity weight: ", delta, " embedding similarity weight: ", epsilon)
+            elif args.method == 'se_similarity': # EDS SDS
+                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec + epsilon * em_simprec
+                print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
+                      " structural similarity weight: ", delta, " embedding similarity weight: ", epsilon)
+            else: # ALL
+                finalweight = alpha * entrperc + beta * edprec + gamma * cenperc + delta * connprec + epsilon * simprec + phi * em_simprec
+                print("entropy weight: ", alpha, " density weight: ", beta, " centrality weight: ", gamma,
+                      " structural similarity weight: ", delta, " feature similarity weight: ", epsilon, " embedding similarity weight: ", phi)
             finalweight[train_mask + val_mask + test_mask] = -100
             select = np.argmax(finalweight)
             idx_train.append(select)
@@ -208,12 +211,11 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
         cost, acc, duration = evaluate(features, support, y_val, val_mask, placeholders)
         cost_val.append(cost)
 
-        # Print results
         print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),
               "train_acc=", "{:.5f}".format(outs[2]), "val_loss=", "{:.5f}".format(cost),
               "val_acc=", "{:.5f}".format(acc), "time=", "{:.5f}".format(time.time() - t))
 
-        if epoch > FLAGS.early_stopping and cost_val[-1] > np.mean(cost_val[-(FLAGS.early_stopping + 1):-1]) and len(
+        if epoch > args.early_stopping and cost_val[-1] > np.mean(cost_val[-(args.early_stopping + 1):-1]) and len(
                 idx_train) >= NL:
             print("Early stopping...")
             break
@@ -225,14 +227,14 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
     macrof1 = f1_score(y_true, y_pred[test_mask], average='macro')
     microf1 = f1_score(y_true, y_pred[test_mask], average='micro')
     print(macrof1, microf1)
-    directory = "res/" + FLAGS.dataset + "/"
+    directory = "res/" + args.dataset + "/"
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    f = open(directory + "val_" + sys.argv[1] + "_ini_" + sys.argv[2] + "_macrof1.txt", "a");
+    f = open(directory + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
     f.write("{:.5f}\n".format(macrof1))
     f.close()
-    f1 = open(directory + "/val_" + sys.argv[1] + "_ini_" + sys.argv[2] + "_microf1.txt", "a");
+    f1 = open(directory + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
     f1.write("{:.5f}\n".format(microf1))
     f1.close()
     MAC.append(macrof1)
