@@ -1,6 +1,6 @@
 from config import *
 from helpers import load_randomalpdata, create_mask, preprocess_features, preprocess_adj
-
+from gcn import GCN
 
 # Define hyperparameters based on the dataset and method
 if args.dataset == "citeseer":
@@ -41,5 +41,7 @@ for idx in range(10):
     message_passing = adj * adj
     raw_features = features.todense()
     features = preprocess_features(features)
-    support = []
+    support = [preprocess_adj(adj)]
+    num_supports = 1
+    model_func = GCN
 
