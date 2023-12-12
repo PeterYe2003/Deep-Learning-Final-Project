@@ -17,6 +17,13 @@ from sklearn.metrics import f1_score
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 
+
+if args.model == 'gcn' and args.method == 'baseline' and args.dataset == 'citeseer':
+    exit(0)
+
+if args.model == 'gcn' and args.method == 'f_similarity' and args.dataset == 'citeseer':
+    exit(0)
+
 seed = 42
 np.random.seed(seed)
 tf.random.set_seed(seed)
@@ -40,7 +47,6 @@ elif dataset_str == 'cora':
         basef = 0.99
 elif dataset_str == 'pubmed':
     basef = 0.995
-
 
 MAC = []
 MIC = []
@@ -231,17 +237,17 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
         os.makedirs(directory)
 
     if args.model == 'gcn':
-        f = open(directory + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
+        f = open(directory + "val_" + args.method + "_ini_" + str(args.inicount) + "_macrof1.txt", "a")
         f.write("{:.5f}\n".format(macrof1))
         f.close()
-        f1 = open(directory + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
+        f1 = open(directory + "val_" + args.method + "_ini_" + str(args.inicount) + "_microf1.txt", "a")
         f1.write("{:.5f}\n".format(microf1))
         f1.close()
     else:
-        f = open(directory + "simple_gcn_" + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
+        f = open(directory + "simple_gcn_" + "val_" + args.method + "_ini_" + str(args.inicount) + "_macrof1.txt", "a")
         f.write("{:.5f}\n".format(macrof1))
         f.close()
-        f1 = open(directory + "simple_gcn_" + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
+        f1 = open(directory + "simple_gcn_" + "val_" + args.method + "_ini_" + str(args.inicount) + "_microf1.txt", "a")
         f1.write("{:.5f}\n".format(microf1))
         f1.close()
 
