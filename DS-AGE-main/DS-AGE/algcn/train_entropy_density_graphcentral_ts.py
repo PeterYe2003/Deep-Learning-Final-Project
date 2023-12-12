@@ -5,7 +5,6 @@ import time
 import tensorflow as tf
 import scipy as sc
 import os
-import argparse
 import sklearn
 
 from gcn.utils import *
@@ -231,12 +230,22 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    f = open(directory + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
-    f.write("{:.5f}\n".format(macrof1))
-    f.close()
-    f1 = open(directory + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
-    f1.write("{:.5f}\n".format(microf1))
-    f1.close()
+    if args.model == 'gcn':
+        f = open(directory + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
+        f.write("{:.5f}\n".format(macrof1))
+        f.close()
+        f1 = open(directory + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
+        f1.write("{:.5f}\n".format(microf1))
+        f1.close()
+    else:
+        f = open(directory + "simple_gcn_" + "val_" + args.method + "_ini_" + args.inicount + "_macrof1.txt", "a")
+        f.write("{:.5f}\n".format(macrof1))
+        f.close()
+        f1 = open(directory + "simple_gcn_" + "/val_" + args.method + "_ini_" + args.inicount + "_microf1.txt", "a")
+        f1.write("{:.5f}\n".format(microf1))
+        f1.close()
+
+
     MAC.append(macrof1)
     MIC.append(microf1)
 
