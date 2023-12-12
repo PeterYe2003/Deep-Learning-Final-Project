@@ -10,7 +10,7 @@ class GCN(tf.keras.Model):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.num_nonzero_features = num_nonzero_features
-        self.layers = []
+        self.conv_layers = []
 
         self._build_layers()
 
@@ -19,22 +19,19 @@ class GCN(tf.keras.Model):
 
     def _build_layers(self):
 
-        self.layers.append(GraphConvolutionLayer(input_dim=self.input_dim,
+        self.conv_layers.append(GraphConvolutionLayer(input_dim=self.input_dim,
                                                  output_dim=args.hidden1,
                                                  num_nonzero_features=self.num_nonzero_features,
                                                  act_fn=tf.nn.relu,
                                                  dropout=args.dropout,
-                                                 sparse_inputs=True
+                                                 has_sparse_inputs=True
                                                  ))
-        self.layers.append(GraphConvolutionLayer(input_dim=args.hidden1,
+        self.conv_layers.append(GraphConvolutionLayer(input_dim=args.hidden1,
                                                  output_dim=self.output_dim,
                                                  num_nonzero_features=self.num_nonzero_features,
                                                  act_fn=lambda x: x,
                                                  dropout=True
                                                  ))
-
-    def _predict(self):
-        return tf.nn.softmax(self.outputs)
 
     def call(self, inputs: Tuple[tf.Tensor, tf.Tensor, tf.Tensor], training: Union[tf.bool, bool] = None, mask: tf.Tensor =None) -> Tuple[tf.Tensor, tf.Tensor]:
         """
@@ -58,15 +55,19 @@ class GCN(tf.keras.Model):
 
         features, label, adj = inputs
         outputs = [features]
-        for layer in self.layers:
-            hidden_outputs = layer((outputs[-1], adj), training)
+        for layer in self.conv_layers:
+            hidden_outputs = layer(inputs=(outputs[-1], adj), training=training)
             outputs.append(hidden_outputs)
         out = outputs[-1]
 
         loss = zeros_tensor([])
-        for var in self.layers_[0].trainable_variables:
+        for var in self.conv_layers[0].trainable_variables:
             loss += args.weight_decay * tf.nn.l2_loss(var)
         loss += m_softmax_cross_entropy(out, label, mask)
         acc = m_accuracy(out, label, mask)
 
         return loss, acc
+
+    def predict(self):
+        return tf.nn.softmax(self.outputs)
+    

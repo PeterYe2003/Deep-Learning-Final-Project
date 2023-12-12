@@ -100,7 +100,6 @@ def sparse_to_tuple(sparse_mx):
 
     return sparse_mx
 
-
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""
     deg = np.array(features.sum(axis=1))
@@ -109,7 +108,7 @@ def preprocess_features(features):
     D_inv = sp.diags(deg_inv)
     features = D_inv.dot(features)
     return sparse_to_tuple(features)
-
+    # return features
 
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
@@ -128,12 +127,20 @@ def preprocess_adj(adj):
     return sparse_to_tuple(adj_normalized)
 
 
-def construct_feed_dict(features, support, labels, labels_mask, placeholders):
-    """Construct feed dictionary."""
-    feed_dict = dict()
-    feed_dict.update({placeholders['labels']: labels})
-    feed_dict.update({placeholders['labels_mask']: labels_mask})
-    feed_dict.update({placeholders['features']: features})
-    feed_dict.update({placeholders['support']: support})
-    feed_dict.update({placeholders['num_features_nonzero']: features[1].shape})
-    return feed_dict
+# def construct_feed_dict(features, support, labels, labels_mask, placeholders):
+#     """Construct feed dictionary."""
+#     feed_dict = dict()
+#     feed_dict.update({placeholders['labels']: labels})
+#     feed_dict.update({placeholders['labels_mask']: labels_mask})
+#     feed_dict.update({placeholders['features']: features})
+#     feed_dict.update({placeholders['support']: support})
+#     feed_dict.update({placeholders['num_features_nonzero']: features[1].shape})
+#     return feed_dict
+
+def perc(input_list, k):
+        count = sum(1 for i in input_list if i < input_list[k])
+        return count / len(input_list)
+
+def percd(input_list, k):
+        count = sum(1 for i in input_list if i > input_list[k])
+        return count / len(input_list)

@@ -26,6 +26,8 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
         self.has_sparse_inputs = has_sparse_inputs
         self.has_features = has_features
         self.bias = bias
+        self.input_dim = input_dim
+        self.output_dim = output_dim
 
         w = self.add_weight(name="weight0", shape=[input_dim, output_dim])
         w.assign(gb_tensor([input_dim, output_dim]))
@@ -35,8 +37,8 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
             b = self.add_weight(name="bias", shape=[output_dim])
             b.assign(zeros_tensor([output_dim]))
 
-    def __call__(self, inputs):
-        return self._call(inputs)
+    def __call__(self, inputs, training):
+        return self._call(inputs, training=training)
 
     def _dropout(self, features: Union[tf.Tensor, tf.SparseTensor], training: Any):
         """
@@ -51,37 +53,47 @@ class GraphConvolutionLayer(tf.keras.layers.Layer):
         """
         if training is False:
             return features
-        if self.sparse_inputs:
+        if self.has_sparse_inputs:
             features = sparse_dropout(features, self.dropout, self.num_nonzero_features)
         else:
             features = tf.nn.dropout(features, rate=self.dropout)
         return features
 
-    def _convolve(self, features: tf.Tensor, adj_: List[tf.Tensor]):
+    def _convolve(self, features, adj_):
         """
         Perform graph convolution operation on input features.
 
         :param features: Input features.
 
-        :param adj_: List of adjacency matrices.
+        :param adj_: adjacency matrices.
 
         :return: Output after graph convolution.
         """
+        # print(type(features))
+        print(type(adj_))
+        # print(adj_.shape)
+        print(self.weights_)
+
+        while len(self.weights_) < adj_.shape[0]:
+            w = self.add_weight(name=f"weight{len(self.weights_)-1}", shape=[self.input_dim, self.output_dim])
+            w.assign(gb_tensor([self.input_dim, self.output_dim]))
+            self.weights_.append(w)
+
         adj = [
-            multiply_tensors(features, self.weights_[i], sparse=self.sparse_inputs)
+            multiply_tensors(features, self.weights_[i], sparse=self.has_sparse_inputs)
             if self.has_features
             else self.weights_[i]
-            for i in range(len(adj_))
+            for i in range(adj_.shape[0])
         ]
-
+        print(type(adj_[:, [0]]))
         outputs = [
-            multiply_tensors(adj_[i], adj[i], sparse=True)
-            for i in range(len(adj_))
+            multiply_tensors(adj_[:, [i]], adj[i], sparse=True)
+            for i in range(adj_.shape[0])
         ]
 
         return tf.add_n(outputs)
 
-    def call(self, inputs: Tuple[tf.Tensor, List[tf.Tensor]], training=None, **kwargs):
+    def _call(self, inputs: Tuple[tf.Tensor, List[tf.Tensor]], training=None, **kwargs):
         """
         Perform the computation of 4the Graph Convolutional Layer.
 

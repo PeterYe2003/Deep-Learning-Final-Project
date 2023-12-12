@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from helpers import sparse_to_tuple
 
 
 def sparse_dropout(input_tensor, prob, noise_shape):
@@ -60,6 +61,7 @@ def multiply_tensors(x, y, sparse=False):
     """
 
     if sparse:
+        y = tf.cast(y, tf.float64)
         res = tf.sparse.sparse_dense_matmul(x, y)
     else:
         res = tf.matmul(x, y)
@@ -81,4 +83,3 @@ def zeros_tensor(shape, name=None):
 def ones_tensor(shape, name=None):
     """All ones."""
     return tf.Variable(tf.ones(shape, dtype=tf.float32), name=name)
-

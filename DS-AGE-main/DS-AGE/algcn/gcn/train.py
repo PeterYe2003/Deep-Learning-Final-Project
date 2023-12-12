@@ -5,7 +5,7 @@ import time
 import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
 from utils import *
-from models import GCN, MLP
+from models import GCN
 
 # Set random seed
 seed = 123
@@ -30,20 +30,8 @@ adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_da
 
 # Some preprocessing
 features = preprocess_features(features)
-if FLAGS.model == 'gcn':
-    support = [preprocess_adj(adj)]
-    num_supports = 1
-    model_func = GCN
-elif FLAGS.model == 'gcn_cheby':
-    support = chebyshev_polynomials(adj, FLAGS.max_degree)
-    num_supports = 1 + FLAGS.max_degree
-    model_func = GCN
-elif FLAGS.model == 'dense':
-    support = [preprocess_adj(adj)]  # Not used
-    num_supports = 1
-    model_func = MLP
-else:
-    raise ValueError('Invalid argument for model: ' + str(FLAGS.model))
+support = [preprocess_adj(adj)]
+num_supports = 1
 
 # Define placeholders
 placeholders = {
@@ -56,7 +44,7 @@ placeholders = {
 }
 
 # Create model
-model = model_func(placeholders, input_dim=features[2][1], logging=True)
+model = GCN(placeholders, input_dim=features[2][1], logging=True)
 
 # Initialize session
 sess = tf.Session()

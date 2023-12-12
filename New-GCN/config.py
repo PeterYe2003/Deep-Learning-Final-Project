@@ -11,5 +11,6 @@ parser.add_argument("--weight_decay", default=5e-4)
 parser.add_argument("--early_stopping", default=10)
 parser.add_argument("--max_degree", default=3)
 parser.add_argument("--inicount", default=4)
+parser.add_argument("--num_classes", default=6)
 
 args = parser.parse_args()
