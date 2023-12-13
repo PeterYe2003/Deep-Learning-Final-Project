@@ -6,6 +6,7 @@ import tensorflow as tf
 import scipy as sc
 import os
 import sklearn
+import sys
 
 from gcn.utils import *
 from gcn.models import GCN, Simple_GCN
@@ -22,6 +23,12 @@ if args.model == 'gcn' and args.method == 'baseline' and args.dataset == 'citese
     exit(0)
 
 if args.model == 'gcn' and args.method == 'f_similarity' and args.dataset == 'citeseer':
+    exit(0)
+
+if args.model == 'gcn' and args.method == 's_similarity' and args.dataset == 'citeseer':
+    exit(0)
+
+if args.model == 'simple_gcn' and args.method == 'baseline' and args.dataset == 'citeseer':
     exit(0)
 
 seed = 42
@@ -50,7 +57,7 @@ elif dataset_str == 'pubmed':
 
 MAC = []
 MIC = []
-for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
+for index_val in ['0', '1', '2', '3', '4']:
     adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask, idx_train, labels, graph = load_randomalpdata(
         args.dataset, index_val, args.inicount)
     np.set_printoptions(threshold=sys.maxsize)
@@ -258,7 +265,7 @@ for index_val in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
 print(MAC)
 print(MIC)
 
-print("mean of macrof1 over 11 runs: ", np.mean(MAC))
-print("mean of microf1 over 11 runs: ", np.mean(MIC))
-print("variance of macrof1 over 11 runs: ", np.var(MAC))
-print("variance of microf1 over 11 runs: ", np.var(MIC))
+print("mean of macrof1 over 5 runs: ", np.mean(MAC))
+print("mean of microf1 over 5 runs: ", np.mean(MIC))
+print("variance of macrof1 over 5 runs: ", np.var(MAC))
+print("variance of microf1 over 5 runs: ", np.var(MIC))

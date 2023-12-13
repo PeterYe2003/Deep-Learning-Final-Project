@@ -1,9 +1,10 @@
 import sys
+sys.path.append('/Users/brandondu/Documents/GitHub/Deep-Learning-Final-Project/DS-AGE-main/DS-AGE/algcn/gcn/')
 
-sys.path.append('/Users/brandondu/Documents/GitHub/Deep-Learning-Final-Project/DS-AGE-main/DS-AGE/algcn/gcn')
 from layers import *
 from metrics import *
 from configuration import *
+
 
 class GCN:
     def __init__(self, placeholders, input_dim, **kwargs):

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Define datasets, methods, and models to loop over
-datasets=("citeseer" "cora" "pubmed")
-methods=("baseline" "f_similarity" "s_similarity" "e_similarity" "fs_similarity" "fe_similarity" "se_similarity" "all")
+datasets=("cora" "pubmed")
+methods=("all" "se_similarity" "fe_similarity" "fs_similarity" "e_similarity" "s_similarity" "f_similarity" "baseline")
 models=("gcn")
 
 for dataset in "${datasets[@]}"
