@@ -6,7 +6,6 @@ import tensorflow as tf
 import scipy as sc
 import os
 import sklearn
-import sys
 
 from gcn.utils import *
 from gcn.models import GCN, Simple_GCN
@@ -88,10 +87,8 @@ for index_val in ['0', '1', '2', '3', '4']:
         'num_features_nonzero': tf.compat.v1.placeholder(tf.int32)  # helper variable for sparse dropout
     }
 
-    # Create model
     model = model_func(placeholders, input_dim=features[2][1], logging=True)
 
-    # Initialize session
     sess = tf.compat.v1.Session()
 
     def evaluate(features, support, labels, mask, placeholders):
@@ -118,7 +115,6 @@ for index_val in ['0', '1', '2', '3', '4']:
         return count / len(input_list)
 
 
-    # Init variables
     sess.run(tf.compat.v1.global_variables_initializer())
 
     cost_val = []
@@ -126,7 +122,6 @@ for index_val in ['0', '1', '2', '3', '4']:
     normcen = np.loadtxt("res/" + args.dataset + "/graphcentrality/normcen")
     cenperc = np.asarray([perc(normcen, i) for i in range(len(normcen))])
 
-    # Train model
     for epoch in range(args.epochs):
 
         t = time.time()
@@ -257,7 +252,6 @@ for index_val in ['0', '1', '2', '3', '4']:
         f1 = open(directory + "simple_gcn_" + "val_" + args.method + "_ini_" + str(args.inicount) + "_microf1.txt", "a")
         f1.write("{:.5f}\n".format(microf1))
         f1.close()
-
 
     MAC.append(macrof1)
     MIC.append(microf1)

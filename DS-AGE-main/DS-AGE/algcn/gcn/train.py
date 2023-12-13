@@ -13,10 +13,8 @@ seed = 123
 np.random.seed(seed)
 tf.set_random_seed(seed)
 
-# Load data
 adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(args.dataset)
 
-# Some preprocessing
 features = preprocess_features(features)
 support = [preprocess_adj(adj)]
 num_supports = 1

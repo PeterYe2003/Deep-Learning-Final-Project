@@ -37,8 +37,6 @@ def load_randomalpdata(dataset_str, iter, inicount):
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset_str == 'citeseer':
-        # Fix citeseer dataset (there are some isolated nodes in the graph)
-        # Find isolated nodes, add them as zero-vecs into the right position
         test_idx_range_full = range(min(test_idx_reorder), max(test_idx_reorder) + 1)
         tx_extended = sp.lil_matrix((len(test_idx_range_full), x.shape[1]))
         tx_extended[test_idx_range - min(test_idx_range), :] = tx
@@ -55,24 +53,13 @@ def load_randomalpdata(dataset_str, iter, inicount):
         NL = 18717
         NC = 3
 
-    print(allx.shape)
-    print(tx.shape)
     features = sp.vstack((allx, tx)).tolil()
     features[test_idx_reorder, :] = features[test_idx_range, :]
-    print(features.shape)
     adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
 
     labels = np.vstack((ally, ty))
     labels[test_idx_reorder, :] = labels[test_idx_range, :]
 
-    # fixed 500 for validation read from file, choose random inicount per class as initial of al from the others for train
-    '''
-    idx_test = test_idx_range.tolist()
-    idx_train = range(len(y))
-    idx_val = range(len(y), len(y)+500)
-    '''
-
-    # size of idx_train, train_mask and y_train will incrementally increase
     idx_test = test_idx_range.tolist()
     idx_val = [int(item) for item in open("source/" + dataset_str + "/val_idx" + str(iter) + ".txt").readlines()]
     idx_traincand = list(set(range(0, NL)) - set(idx_val))  # train candiate, not test not valid
