@@ -34,7 +34,7 @@ python train_entropy_density_graphcentral_ts.py
 
 ## Options
 
-The available options for [your-dataset] includes "cora", "citeseer" and "pubmed".
+The available options for [your-dataset] includes "cora" and "citeseer"
 
 The available options for [your-active-learning-score] includes "all" "se_similarity" "fe_similarity" "fs_similarity" "e_similarity" "s_similarity" "f_similarity" "baseline"
 
