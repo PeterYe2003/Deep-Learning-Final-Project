@@ -2,7 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", default="cora")
-parser.add_argument("--method", default="AGE+FDS+SDS")
+parser.add_argument("--method", default="all")
 parser.add_argument("--learning_rate", default=0.01)
 parser.add_argument("--epochs", default=300)
 parser.add_argument("--hidden1", default=16)
